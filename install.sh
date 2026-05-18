@@ -1,4 +1,5 @@
 #!/bin/bash
+set -eo pipefail
 
 apt install software-properties-common -y
 add-apt-repository ppa:wireguard/wireguard -y

@@ -1,4 +1,10 @@
-echo "# Reseting..."
+echo "# Resetting..."
+set -eo pipefail
+
+echo "Are you sure you want to delete all clients and put the server back to initial state? Press [Enter] to continue or [Ctrl]+C to abort..."
+read
+echo "Are you really sure?"
+read
 
 cd /etc/wireguard
 
@@ -14,4 +20,4 @@ cp -f wg0.conf.def wg0.conf
 systemctl stop wg-quick@wg0
 wg-quick down wg0
 
-echo "# Reseted"
+echo "# Resetted"

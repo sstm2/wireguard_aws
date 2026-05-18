@@ -1,4 +1,10 @@
 echo "# Removing"
+set -eo pipefail
+
+echo "Are you sure you want to remove wireguard? Press [Enter] to continue or [Ctrl]+C to abort..."
+read
+echo "Are you really sure?"
+read
 
 wg-quick down wg0
 systemctl stop wg-quick@wg0

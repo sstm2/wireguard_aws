@@ -1,4 +1,8 @@
 #!/bin/bash
+set -eo pipefail
+
+# should fail if not root
+cd /etc/wireguard/
 
 # We read from the input parameter the name of the client
 if [ -z "$1" ]
@@ -11,8 +15,6 @@ if [ -z "$1" ]
     fi
   else USERNAME=$1
 fi
-
-cd /etc/wireguard/
 
 read DNS < ./dns.var
 read ENDPOINT < ./endpoint.var
