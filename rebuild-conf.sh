@@ -16,7 +16,7 @@ CONF_FILE="${CONF_NAME}.conf"
 cd "$WG_CONF_DIR"
 
 
-_replace_text_file()
+_replace_conf_file()
 {
   local -r DESC="$1"
   local -r FILE="$2"
@@ -28,7 +28,8 @@ _replace_text_file()
       echo "No differences found, existing $DESC file '$FILE' not replaced"
     else
       echo
-      local -r FILE_DATE="${FILE}.$( date -r "$FILE" "+%Y%m%d" )"
+      mkdir -p "./.conf.bak"
+      local -r FILE_DATE="./.conf.bak/${FILE}.$( date -r "$FILE" "+%Y%m%d" )"
       if ls "$FILE_DATE"* &>/dev/null; then
         if [[ -f "$FILE_DATE" ]]; then
           local -r FILE_DATETIME="${FILE_DATE}-$( date -r "$FILE_DATE" "+%H%M%S" )"
@@ -39,7 +40,7 @@ _replace_text_file()
       else
         local -r FILE_BACKUP="$FILE_DATE"
       fi
-      cp -p "$FILE" "$FILE_BACKUP"
+      mv "$FILE" "$FILE_BACKUP"
       echo "Differences found, existing $DESC file '$FILE' backed up to '$FILE_BACKUP'"
     fi
   fi
@@ -59,6 +60,7 @@ CONF_FILE_NEW="${CONF_FILE}.new"
 INT_ADDRESS="$( cat ./vpn_subnet.var )1"
 INT_PRIV_KEY="$( cat ./server_private.key )"
 INT_LISTEN_PORT="$( cut -d: -f2 ./endpoint.var )"
+WAN_INTERFACE="$( cat ./wan_interface_name.var )"
 
 # init with server interface
 cat > "$CONF_FILE_NEW" << EOF
@@ -68,14 +70,16 @@ Address = $INT_ADDRESS
 SaveConfig = false
 PrivateKey = $INT_PRIV_KEY
 ListenPort = $INT_LISTEN_PORT
-PostUp   = iptables -A FORWARD -i %i -j ACCEPT; iptables -A FORWARD -o %i -j ACCEPT; iptables -t nat -A POSTROUTING -o ens5 -j MASQUERADE;
-PostDown = iptables -D FORWARD -i %i -j ACCEPT; iptables -D FORWARD -o %i -j ACCEPT; iptables -t nat -D POSTROUTING -o ens5 -j MASQUERADE;
+PostUp   = iptables -A FORWARD -i %i -j ACCEPT; iptables -A FORWARD -o %i -j ACCEPT; iptables -t nat -A POSTROUTING -o $WAN_INTERFACE -j MASQUERADE;
+PostDown = iptables -D FORWARD -i %i -j ACCEPT; iptables -D FORWARD -o %i -j ACCEPT; iptables -t nat -D POSTROUTING -o $WAN_INTERFACE -j MASQUERADE;
 
 EOF
 
 
-# add each client based on stored conf
-for CLIENT_DIR in $( ls -Adrt ./clients/* ); do
+# add each client based on stored conf, oldest to newest
+mapfile -t CLIENT_DIRS < <( find ./clients -mindepth 1 -maxdepth 1 -type d -printf '%T@ %p\n' | sort -n | cut -d' ' -f2- )
+
+for CLIENT_DIR in "${CLIENT_DIRS[@]}"; do
 #  echo "$CLIENT_DIR"
 
   CLIENT_NAME="$( basename "$CLIENT_DIR" )"
@@ -104,4 +108,4 @@ done
 
 # cat "$CONF_FILE_NEW"
 
-_replace_text_file "'$CONF_NAME' config" "$CONF_FILE" "$CONF_FILE_NEW"
+_replace_conf_file "'$CONF_NAME' config" "$CONF_FILE" "$CONF_FILE_NEW"
